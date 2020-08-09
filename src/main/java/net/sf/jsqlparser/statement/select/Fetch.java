@@ -1,33 +1,20 @@
-/*
+/*-
  * #%L
  * JSQLParser library
  * %%
- * Copyright (C) 2004 - 2013 JSQLParser
+ * Copyright (C) 2004 - 2019 JSQLParser
  * %%
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as 
- * published by the Free Software Foundation, either version 2.1 of the 
- * License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Lesser Public License for more details.
- * 
- * You should have received a copy of the GNU General Lesser Public 
- * License along with this program.  If not, see
- * <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * Dual licensed under GNU LGPL 2.1 or Apache License 2.0
  * #L%
  */
 package net.sf.jsqlparser.statement.select;
 
-/**
- * A fetch clause in the form FETCH (FIRST | NEXT) row_count (ROW | ROWS) ONLY
- */
+import net.sf.jsqlparser.expression.JdbcParameter;
+
 public class Fetch {
 
     private long rowCount;
-    private boolean fetchJdbcParameter = false;
+    private JdbcParameter fetchJdbcParameter = null;
     private boolean isFetchParamFirst = false;
     private String fetchParam = "ROW";
 
@@ -39,7 +26,7 @@ public class Fetch {
         rowCount = l;
     }
 
-    public boolean isFetchJdbcParameter() {
+    public JdbcParameter getFetchJdbcParameter() {
         return fetchJdbcParameter;
     }
 
@@ -51,8 +38,8 @@ public class Fetch {
         return isFetchParamFirst;
     }
 
-    public void setFetchJdbcParameter(boolean b) {
-        fetchJdbcParameter = b;
+    public void setFetchJdbcParameter(JdbcParameter jdbc) {
+        fetchJdbcParameter = jdbc;
     }
 
     public void setFetchParam(String s) {
@@ -65,7 +52,8 @@ public class Fetch {
 
     @Override
     public String toString() {
-        return " FETCH " + (isFetchParamFirst ? "FIRST" : "NEXT") + " " + (fetchJdbcParameter ? "?" : Long.
-                toString(rowCount)) + " " + fetchParam + " ONLY";
+        return " FETCH " + (isFetchParamFirst ? "FIRST" : "NEXT") + " " 
+                + (fetchJdbcParameter!=null ? fetchJdbcParameter.toString() : 
+                    Long.toString(rowCount)) + " " + fetchParam + " ONLY";
     }
 }

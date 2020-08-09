@@ -1,30 +1,20 @@
-/*
+/*-
  * #%L
  * JSQLParser library
  * %%
- * Copyright (C) 2004 - 2013 JSQLParser
+ * Copyright (C) 2004 - 2019 JSQLParser
  * %%
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as 
- * published by the Free Software Foundation, either version 2.1 of the 
- * License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Lesser Public License for more details.
- * 
- * You should have received a copy of the GNU General Lesser Public 
- * License along with this program.  If not, see
- * <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * Dual licensed under GNU LGPL 2.1 or Apache License 2.0
  * #L%
  */
 package net.sf.jsqlparser.expression;
 
+import net.sf.jsqlparser.parser.ASTNodeAccessImpl;
+
 /**
- * It represents a "-" or "+" before an expression
+ * It represents a "-" or "+" or "~" before an expression
  */
-public class SignedExpression implements Expression {
+public class SignedExpression extends ASTNodeAccessImpl implements Expression {
 
     private char sign;
     private Expression expression;
@@ -40,8 +30,8 @@ public class SignedExpression implements Expression {
 
     public final void setSign(char sign) {
         this.sign = sign;
-        if (sign != '+' && sign != '-') {
-            throw new IllegalArgumentException("illegal sign character, only + - allowed");
+        if (sign != '+' && sign != '-' && sign != '~') {
+            throw new IllegalArgumentException("illegal sign character, only + - ~ allowed");
         }
     }
 

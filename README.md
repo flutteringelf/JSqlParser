@@ -2,31 +2,49 @@
 
 [![Build Status](https://travis-ci.org/JSQLParser/JSqlParser.svg?branch=master)](https://travis-ci.org/JSQLParser/JSqlParser)   [![Coverage Status](https://coveralls.io/repos/JSQLParser/JSqlParser/badge.svg?branch=master)](https://coveralls.io/r/JSQLParser/JSqlParser?branch=master)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/00b2d91995764ae4805b55627aca8d39)](https://www.codacy.com/app/wumpz/JSqlParser?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=JSQLParser/JSqlParser&amp;utm_campaign=Badge_Grade)
-
-[![PayPal donate button](http://img.shields.io/paypal/donate.png?color=blue)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=64CCN9JJANZXA "Help this JSqlParser version using Paypal")  
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.jsqlparser/jsqlparser/badge.svg)](http://maven-badges.herokuapp.com/maven-central/com.github.jsqlparser/jsqlparser)
+[![Javadocs](https://www.javadoc.io/badge/com.github.jsqlparser/jsqlparser.svg)](https://www.javadoc.io/doc/com.github.jsqlparser/jsqlparser)
 
 [![Gitter](https://badges.gitter.im/JSQLParser/JSqlParser.svg)](https://gitter.im/JSQLParser/JSqlParser?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![Code Quality: Java](https://img.shields.io/lgtm/grade/java/g/JSQLParser/JSqlParser.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/JSQLParser/JSqlParser/context:java)
+[![Total Alerts](https://img.shields.io/lgtm/alerts/g/JSQLParser/JSqlParser.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/JSQLParser/JSqlParser/alerts)
 
 Look here for more information and examples: https://github.com/JSQLParser/JSqlParser/wiki.
 
 ## License
 
-JSqlParser is dual licensed under **LGPL V2.1** and **Apache Software License, Version 2.0**.
+JSqlParser is dual licensed under **LGPL V2.1** or **Apache Software License, Version 2.0**.
 
+## Discussion
+
+Please provide feedback on:
+
+* API changes: extend visitor with return values (https://github.com/JSQLParser/JSqlParser/issues/901)
 
 ## News
+* Released version **3.2** of JSqlParser
+* Released version **3.1** of JSqlParser
+* Released version **3.0** of JSqlParser
+* The array parsing is the default behaviour. Square bracket quotation has to be enabled using 
+  a parser flag (**CCJSqlParser.withSquareBracketQuotation**).
+* due to an API change the version will be 3.0
+* JSqlParser uses now Java 8 at the minimum
+* Released version **2.1** of JSqlParser
+* Released version **2.0** of JSqlParser
+* breaking **API** change: to support chained functions attribute type was changed to **Expression**
+* Released version **1.4** of JSqlParser
+* Released version **1.3** of JSqlParser
+* Changed behaviour of dotted multipart names for user variables, tables and columns to accept e.g. ORM class names. To achieve this some behaviour of name parsing had to be changed. Before this the parser would fail missing databasenames for SqlServer queries (server..schema.table). But this is allowed for the schema (server.database..table). Now the parser accepts missing inner names per se to avoid some very complicated parsing rules.
+* Released version **1.2** of JSqlParser
+* breaking **API** change: merge of *within group* and *over* (window expressions)
+* Released version **1.1** of JSqlParser. 
 * JSqlParser has now a build in checkstyle configuration to introduce source code conventions.
 * Released first major version **1.0** of JSqlParser. 
-* Please test the actual **0.9.8-SNAPSHOT**. It includes includes grammar refactorings or changes which eventually results in parse tree changes.
-* Version **0.9.7** released.
-* Version **0.9.6** released.
-* Version **0.9.5** released.
-* Please test the actual **0.9.5-SNAPSHOT**. It includes some grammar refactorings which eventually results in parse tree changes.
-* Version **0.9.4** released.
-* Please test the actual SNAPSHOT, if there are problems using the extended identifier token.
-* Version **0.9.3** released.
 
 More news can be found here: https://github.com/JSQLParser/JSqlParser/wiki/News.
+
+## Alternatives to JSqlParser?
+[**General SQL Parser**](http://www.sqlparser.com/features/introduce.php?utm_source=github-jsqlparser&utm_medium=text-general) looks pretty good, with extended SQL syntax (like PL/SQL and T-SQL) and java + .NET APIs. The tool is commercial (license available online), with a free download option.
 
 ## JSqlParser
 
@@ -36,26 +54,31 @@ JSqlParser is a SQL statement parser. It translates SQLs in a traversable hierar
 If you need help using JSqlParser feel free to file an issue or contact me.
 
 ## Contributions
-To help JSqlParsers development you are encouraged to provide 
+To help JSqlParser's development you are encouraged to provide 
 * feedback
 * bugreports
 * pull requests for new features
 * improvement requests
-* fund new features
+* fund new features or sponsor JSqlParser ([**Sponsor**](https://www.paypal.me/wumpz))
+
+**Please write in English, since it's the language most of the dev team knows.**
 
 Also I would like to know about needed examples or documentation stuff.
 
-## Extensions in the latest SNAPSHOT version 1.1
+## Extensions in the latest SNAPSHOT version 3.3
 
-* common normal form transformer for expressions (https://en.wikipedia.org/wiki/Conjunctive_normal_form) 
-* checkstyle integration to force first souce code conventions
-  * checkstyle is activated by default, it can be deactivated by an environment property **skipCheckSources**
-  * pull requests should follow this style settings
+* **ON UPDATE CASCADE** implemented
+* add generated sources to classpath to avoid maven eclipse problems
+* **COMMENT ON VIEW** implemented
+* allowed Jdbc named parameters within interval expressions
+* allow variable assignments in select statements in different positions
+* allow keywords as object names **of**, **exclude**
+* multi part **Table** name gets automatically resized if the last item is removed
 
 ## Extensions of JSqlParser releases
 
 * [Release Notes](https://github.com/JSQLParser/JSqlParser/releases)
-* Modifications before GitHubs release tagging are listed in the [Older Releases](https://github.com/JSQLParser/JSqlParser/wiki/Older-Releases) page.
+* Modifications before GitHub's release tagging are listed in the [Older Releases](https://github.com/JSQLParser/JSqlParser/wiki/Older-Releases) page.
 
 
 ## Building from the sources
@@ -66,11 +89,15 @@ As the project is a Maven project, building is rather simple by running:
     
 The project requires the following to build:
 - Maven 
-- JDK 1.7 or later. The jar will target JDK 1.6, but the version of the maven-compiler-plugin that JsqlParser uses requires JDK 1.7+
+- JDK 8 or later. The jar will target JDK 8, but the version of the maven-compiler-plugin that JsqlParser uses requires JDK 8+
 
 This will produce the jsqlparser-VERSION.jar file in the target/ directory.
 
-**To build this project without using Maven, one has to build the parser by JavaCC using the CLI options it provids.**
+**To build this project without using Maven, one has to build the parser by JavaCC using the CLI options it provides.**
+
+## Debugging through problems
+
+Refer to the [Visualize Parsing](https://github.com/JSQLParser/JSqlParser/wiki/Examples-of-SQL-parsing#visualize-parsing) section to learn how to run the parser in debug mode.
 
 ## Source Code conventions
 
@@ -114,7 +141,7 @@ And this is the dependency declaration in your pom:
 <dependency>
 	<groupId>com.github.jsqlparser</groupId>
 	<artifactId>jsqlparser</artifactId>
-	<version>1.0</version>
+	<version>3.1</version>
 </dependency>
 ```
 

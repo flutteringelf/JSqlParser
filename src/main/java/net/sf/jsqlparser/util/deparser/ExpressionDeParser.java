@@ -1,78 +1,124 @@
-/*
+/*-
  * #%L
  * JSQLParser library
  * %%
- * Copyright (C) 2004 - 2013 JSQLParser
+ * Copyright (C) 2004 - 2019 JSQLParser
  * %%
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as 
- * published by the Free Software Foundation, either version 2.1 of the 
- * License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Lesser Public License for more details.
- * 
- * You should have received a copy of the GNU General Lesser Public 
- * License along with this program.  If not, see
- * <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * Dual licensed under GNU LGPL 2.1 or Apache License 2.0
  * #L%
  */
 package net.sf.jsqlparser.util.deparser;
 
-import net.sf.jsqlparser.expression.*;
-import net.sf.jsqlparser.expression.operators.arithmetic.*;
+import java.util.Iterator;
+import java.util.List;
+
+import net.sf.jsqlparser.expression.AllComparisonExpression;
+import net.sf.jsqlparser.expression.AnalyticExpression;
+import net.sf.jsqlparser.expression.AnyComparisonExpression;
+import net.sf.jsqlparser.expression.ArrayExpression;
+import net.sf.jsqlparser.expression.BinaryExpression;
+import net.sf.jsqlparser.expression.CaseExpression;
+import net.sf.jsqlparser.expression.CastExpression;
+import net.sf.jsqlparser.expression.CollateExpression;
+import net.sf.jsqlparser.expression.DateTimeLiteralExpression;
+import net.sf.jsqlparser.expression.DateValue;
+import net.sf.jsqlparser.expression.DoubleValue;
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.ExpressionVisitor;
+import net.sf.jsqlparser.expression.ExtractExpression;
+import net.sf.jsqlparser.expression.Function;
+import net.sf.jsqlparser.expression.HexValue;
+import net.sf.jsqlparser.expression.IntervalExpression;
+import net.sf.jsqlparser.expression.JdbcNamedParameter;
+import net.sf.jsqlparser.expression.JdbcParameter;
+import net.sf.jsqlparser.expression.JsonExpression;
+import net.sf.jsqlparser.expression.KeepExpression;
+import net.sf.jsqlparser.expression.LongValue;
+import net.sf.jsqlparser.expression.MySQLGroupConcat;
+import net.sf.jsqlparser.expression.NextValExpression;
+import net.sf.jsqlparser.expression.NotExpression;
+import net.sf.jsqlparser.expression.NullValue;
+import net.sf.jsqlparser.expression.NumericBind;
+import net.sf.jsqlparser.expression.OracleHierarchicalExpression;
+import net.sf.jsqlparser.expression.OracleHint;
+import net.sf.jsqlparser.expression.Parenthesis;
+import net.sf.jsqlparser.expression.RowConstructor;
+import net.sf.jsqlparser.expression.SignedExpression;
+import net.sf.jsqlparser.expression.StringValue;
+import net.sf.jsqlparser.expression.TimeKeyExpression;
+import net.sf.jsqlparser.expression.TimeValue;
+import net.sf.jsqlparser.expression.TimestampValue;
+import net.sf.jsqlparser.expression.UserVariable;
+import net.sf.jsqlparser.expression.ValueListExpression;
+import net.sf.jsqlparser.expression.VariableAssignment;
+import net.sf.jsqlparser.expression.WhenClause;
+import net.sf.jsqlparser.expression.WindowElement;
+import net.sf.jsqlparser.expression.operators.arithmetic.Addition;
+import net.sf.jsqlparser.expression.operators.arithmetic.BitwiseAnd;
+import net.sf.jsqlparser.expression.operators.arithmetic.BitwiseLeftShift;
+import net.sf.jsqlparser.expression.operators.arithmetic.BitwiseOr;
+import net.sf.jsqlparser.expression.operators.arithmetic.BitwiseRightShift;
+import net.sf.jsqlparser.expression.operators.arithmetic.BitwiseXor;
+import net.sf.jsqlparser.expression.operators.arithmetic.Concat;
+import net.sf.jsqlparser.expression.operators.arithmetic.Division;
+import net.sf.jsqlparser.expression.operators.arithmetic.IntegerDivision;
+import net.sf.jsqlparser.expression.operators.arithmetic.Modulo;
+import net.sf.jsqlparser.expression.operators.arithmetic.Multiplication;
+import net.sf.jsqlparser.expression.operators.arithmetic.Subtraction;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
 import net.sf.jsqlparser.expression.operators.conditional.OrExpression;
-import net.sf.jsqlparser.expression.operators.relational.*;
-import net.sf.jsqlparser.schema.*;
+import net.sf.jsqlparser.expression.operators.relational.Between;
+import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
+import net.sf.jsqlparser.expression.operators.relational.ExistsExpression;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+import net.sf.jsqlparser.expression.operators.relational.FullTextSearch;
+import net.sf.jsqlparser.expression.operators.relational.GreaterThan;
+import net.sf.jsqlparser.expression.operators.relational.GreaterThanEquals;
+import net.sf.jsqlparser.expression.operators.relational.InExpression;
+import net.sf.jsqlparser.expression.operators.relational.IsBooleanExpression;
+import net.sf.jsqlparser.expression.operators.relational.IsNullExpression;
+import net.sf.jsqlparser.expression.operators.relational.ItemsListVisitor;
+import net.sf.jsqlparser.expression.operators.relational.JsonOperator;
+import net.sf.jsqlparser.expression.operators.relational.LikeExpression;
+import net.sf.jsqlparser.expression.operators.relational.Matches;
+import net.sf.jsqlparser.expression.operators.relational.MinorThan;
+import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
+import net.sf.jsqlparser.expression.operators.relational.MultiExpressionList;
+import net.sf.jsqlparser.expression.operators.relational.NamedExpressionList;
+import net.sf.jsqlparser.expression.operators.relational.NotEqualsTo;
+import net.sf.jsqlparser.expression.operators.relational.OldOracleJoinBinaryExpression;
+import net.sf.jsqlparser.expression.operators.relational.RegExpMatchOperator;
+import net.sf.jsqlparser.expression.operators.relational.RegExpMySQLOperator;
+import net.sf.jsqlparser.expression.operators.relational.SimilarToExpression;
+import net.sf.jsqlparser.expression.operators.relational.SupportsOldOracleJoinSyntax;
+import net.sf.jsqlparser.schema.Column;
+import net.sf.jsqlparser.schema.Table;
+import net.sf.jsqlparser.statement.select.OrderByElement;
 import net.sf.jsqlparser.statement.select.SelectVisitor;
 import net.sf.jsqlparser.statement.select.SubSelect;
-import net.sf.jsqlparser.expression.operators.relational.JsonOperator;
-import java.util.Iterator;
 import net.sf.jsqlparser.statement.select.WithItem;
 
-/**
- * A class to de-parse (that is, tranform from JSqlParser hierarchy into a string) an
- * {@link net.sf.jsqlparser.expression.Expression}
- */
-public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
+public class ExpressionDeParser extends AbstractDeParser<Expression>
+        // FIXME maybe we should implement an ItemsListDeparser too?
+        implements ExpressionVisitor, ItemsListVisitor {
 
     private static final String NOT = "NOT ";
-    private StringBuilder buffer = new StringBuilder();
     private SelectVisitor selectVisitor;
     private boolean useBracketsInExprList = true;
+    private OrderByDeParser orderByDeParser = new OrderByDeParser();
 
     public ExpressionDeParser() {
+        super(new StringBuilder());
     }
 
-    /**
-     * @param selectVisitor a SelectVisitor to de-parse SubSelects. It has to share the same<br>
-     * StringBuilder as this object in order to work, as:
-     *
-     * <pre>
-     * <code>
-     * StringBuilder myBuf = new StringBuilder();
-     * MySelectDeparser selectDeparser = new  MySelectDeparser();
-     * selectDeparser.setBuffer(myBuf);
-     * ExpressionDeParser expressionDeParser = new ExpressionDeParser(selectDeparser, myBuf);
-     * </code>
-     * </pre>
-     *
-     * @param buffer the buffer that will be filled with the expression
-     */
     public ExpressionDeParser(SelectVisitor selectVisitor, StringBuilder buffer) {
+        this(selectVisitor, buffer, new OrderByDeParser());
+    }
+
+    ExpressionDeParser(SelectVisitor selectVisitor, StringBuilder buffer, OrderByDeParser orderByDeParser) {
+        super(buffer);
         this.selectVisitor = selectVisitor;
-        this.buffer = buffer;
-    }
-
-    public StringBuilder getBuffer() {
-        return buffer;
-    }
-
-    public void setBuffer(StringBuilder buffer) {
-        this.buffer = buffer;
+        this.orderByDeParser = orderByDeParser;
     }
 
     @Override
@@ -82,7 +128,7 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
 
     @Override
     public void visit(AndExpression andExpression) {
-        visitBinaryExpression(andExpression, " AND ");
+        visitBinaryExpression(andExpression, andExpression.isUseOperator() ? " && " : " AND ");
     }
 
     @Override
@@ -110,6 +156,11 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
     }
 
     @Override
+    public void visit(IntegerDivision division) {
+        visitBinaryExpression(division, " DIV ");
+    }
+
+    @Override
     public void visit(DoubleValue doubleValue) {
         buffer.append(doubleValue.toString());
     }
@@ -121,14 +172,28 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
 
     @Override
     public void visit(NotExpression notExpr) {
-        buffer.append(NOT);
+        if (notExpr.isExclamationMark()) {
+            buffer.append("! ");
+        } else {
+            buffer.append(NOT);
+        }
         notExpr.getExpression().accept(this);
     }
 
+    @Override
+    public void visit(BitwiseRightShift expr) {
+        visitBinaryExpression(expr, " >> ");
+    }
+
+    @Override
+    public void visit(BitwiseLeftShift expr) {
+        visitBinaryExpression(expr, " << ");
+    }
+
     public void visitOldOracleJoinBinaryExpression(OldOracleJoinBinaryExpression expression, String operator) {
-        if (expression.isNot()) {
-            buffer.append(NOT);
-        }
+//        if (expression.isNot()) {
+//            buffer.append(NOT);
+//        }
         expression.getLeftExpression().accept(this);
         if (expression.getOldOracleJoinSyntax() == EqualsTo.ORACLE_JOIN_RIGHT) {
             buffer.append("(+)");
@@ -166,7 +231,54 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
         }
         buffer.append(" IN ");
 
-        inExpression.getRightItemsList().accept(this);
+        if (inExpression.getMultiExpressionList() != null) {
+            parseMultiExpressionList(inExpression);
+        } else {
+            if (inExpression.getRightExpression() != null) {
+                inExpression.getRightExpression().accept(this);
+            } else {
+                inExpression.getRightItemsList().accept(this);
+            }
+        }
+    }
+
+    /**
+     * Produces a multi-expression in clause: {@code ((a, b), (c, d))}
+     */
+    private void parseMultiExpressionList(InExpression inExpression) {
+        MultiExpressionList multiExprList = inExpression.getMultiExpressionList();
+        buffer.append("(");
+        for (Iterator<ExpressionList> it = multiExprList.getExprList().iterator(); it.hasNext();) {
+            buffer.append("(");
+            for (Iterator<Expression> iter = it.next().getExpressions().iterator(); iter.hasNext();) {
+                Expression expression = iter.next();
+                expression.accept(this);
+                if (iter.hasNext()) {
+                    buffer.append(", ");
+                }
+            }
+            buffer.append(")");
+            if (it.hasNext()) {
+                buffer.append(", ");
+            }
+        }
+        buffer.append(")");
+    }
+
+    @Override
+    public void visit(FullTextSearch fullTextSearch) {
+        // Build a list of matched columns
+        String columnsListCommaSeperated = "";
+        Iterator<Column> iterator = fullTextSearch.getMatchColumns().iterator();
+        while (iterator.hasNext()) {
+            Column col = iterator.next();
+            columnsListCommaSeperated += col.getFullyQualifiedName();
+            if (iterator.hasNext()) {
+                columnsListCommaSeperated += ",";
+            }
+        }
+        buffer.append("MATCH (" + columnsListCommaSeperated + ") AGAINST (" + fullTextSearch.getAgainstValue()
+                + (fullTextSearch.getSearchModifier() != null ? " " + fullTextSearch.getSearchModifier() : "") + ")");
     }
 
     @Override
@@ -178,10 +290,36 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
     @Override
     public void visit(IsNullExpression isNullExpression) {
         isNullExpression.getLeftExpression().accept(this);
-        if (isNullExpression.isNot()) {
-            buffer.append(" IS NOT NULL");
+        if (isNullExpression.isUseIsNull()) {
+            if (isNullExpression.isNot()) {
+                buffer.append(" NOT ISNULL");
+            } else {
+                buffer.append(" ISNULL");
+            }
         } else {
-            buffer.append(" IS NULL");
+            if (isNullExpression.isNot()) {
+                buffer.append(" IS NOT NULL");
+            } else {
+                buffer.append(" IS NULL");
+            }
+        }
+    }
+
+    @Override
+    public void visit(IsBooleanExpression isBooleanExpression) {
+        isBooleanExpression.getLeftExpression().accept(this);
+        if (isBooleanExpression.isTrue()) {
+            if (isBooleanExpression.isNot()) {
+                buffer.append(" IS NOT TRUE");
+            } else {
+                buffer.append(" IS TRUE");
+            }
+        } else {
+            if (isBooleanExpression.isNot()) {
+                buffer.append(" IS NOT FALSE");
+            } else {
+                buffer.append(" IS FALSE");
+            }
         }
     }
 
@@ -196,7 +334,8 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
 
     @Override
     public void visit(LikeExpression likeExpression) {
-        visitBinaryExpression(likeExpression, likeExpression.isCaseInsensitive() ? " ILIKE " : " LIKE ");
+        visitBinaryExpression(likeExpression,
+                (likeExpression.isNot() ? " NOT" : "") + (likeExpression.isCaseInsensitive() ? " ILIKE " : " LIKE "));
         String escape = likeExpression.getEscape();
         if (escape != null) {
             buffer.append(" ESCAPE '").append(escape).append('\'');
@@ -257,18 +396,16 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
 
     @Override
     public void visit(Parenthesis parenthesis) {
-        if (parenthesis.isNot()) {
-            buffer.append(NOT);
-        }
-
         buffer.append("(");
         parenthesis.getExpression().accept(this);
         buffer.append(")");
-
     }
 
     @Override
     public void visit(StringValue stringValue) {
+        if (stringValue.getPrefix() != null) {
+            buffer.append(stringValue.getPrefix());
+        }
         buffer.append("'").append(stringValue.getValue()).append("'");
 
     }
@@ -276,13 +413,9 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
     @Override
     public void visit(Subtraction subtraction) {
         visitBinaryExpression(subtraction, " - ");
-
     }
 
-    private void visitBinaryExpression(BinaryExpression binaryExpression, String operator) {
-        if (binaryExpression.isNot()) {
-            buffer.append(NOT);
-        }
+    protected void visitBinaryExpression(BinaryExpression binaryExpression, String operator) {
         binaryExpression.getLeftExpression().accept(this);
         buffer.append(operator);
         binaryExpression.getRightExpression().accept(this);
@@ -291,12 +424,13 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
 
     @Override
     public void visit(SubSelect subSelect) {
-        buffer.append("(");
+        if (subSelect.isUseBrackets()) {
+            buffer.append("(");
+        }
         if (selectVisitor != null) {
             if (subSelect.getWithItemsList() != null) {
                 buffer.append("WITH ");
-                for (Iterator<WithItem> iter = subSelect.getWithItemsList().iterator(); iter.
-                        hasNext();) {
+                for (Iterator<WithItem> iter = subSelect.getWithItemsList().iterator(); iter.hasNext();) {
                     iter.next().accept(selectVisitor);
                     if (iter.hasNext()) {
                         buffer.append(", ");
@@ -308,7 +442,9 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
 
             subSelect.getSelectBody().accept(selectVisitor);
         }
-        buffer.append(")");
+        if (subSelect.isUseBrackets()) {
+            buffer.append(")");
+        }
     }
 
     @Override
@@ -338,10 +474,11 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
         buffer.append(function.getName());
         if (function.isAllColumns() && function.getParameters() == null) {
             buffer.append("(*)");
-        } else if (function.getParameters() == null) {
+        } else if (function.getParameters() == null && function.getNamedParameters() == null) {
             buffer.append("()");
         } else {
             boolean oldUseBracketsInExprList = useBracketsInExprList;
+            useBracketsInExprList = true;
             if (function.isDistinct()) {
                 useBracketsInExprList = false;
                 buffer.append("(DISTINCT ");
@@ -349,7 +486,12 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
                 useBracketsInExprList = false;
                 buffer.append("(ALL ");
             }
-            visit(function.getParameters());
+            if (function.getNamedParameters() != null) {
+                visit(function.getNamedParameters());
+            }
+            if (function.getParameters() != null) {
+                visit(function.getParameters());
+            }
             useBracketsInExprList = oldUseBracketsInExprList;
             if (function.isDistinct() || function.isAllColumns()) {
                 buffer.append(")");
@@ -358,6 +500,8 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
 
         if (function.getAttribute() != null) {
             buffer.append(".").append(function.getAttribute());
+        } else if (function.getAttributeName() != null) {
+            buffer.append(".").append(function.getAttributeName());
         }
         if (function.getKeep() != null) {
             buffer.append(" ").append(function.getKeep());
@@ -379,6 +523,29 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
             if (iter.hasNext()) {
                 buffer.append(", ");
             }
+        }
+        if (useBracketsInExprList) {
+            buffer.append(")");
+        }
+    }
+
+    @Override
+    public void visit(NamedExpressionList namedExpressionList) {
+        if (useBracketsInExprList) {
+            buffer.append("(");
+        }
+        List<String> names = namedExpressionList.getNames();
+        List<Expression> expressions = namedExpressionList.getExpressions();
+        for (int i = 0; i < names.size(); i++) {
+            if (i > 0) {
+                buffer.append(" ");
+            }
+            String name = names.get(i);
+            if (!name.equals("")) {
+                buffer.append(name);
+                buffer.append(" ");
+            }
+            expressions.get(i).accept(this);
         }
         if (useBracketsInExprList) {
             buffer.append(")");
@@ -481,12 +648,12 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
     public void visit(CastExpression cast) {
         if (cast.isUseCastKeyword()) {
             buffer.append("CAST(");
-            buffer.append(cast.getLeftExpression());
+            cast.getLeftExpression().accept(this);
             buffer.append(" AS ");
             buffer.append(cast.getType());
             buffer.append(")");
         } else {
-            buffer.append(cast.getLeftExpression());
+            cast.getLeftExpression().accept(this);
             buffer.append("::");
             buffer.append(cast.getType());
         }
@@ -499,7 +666,94 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
 
     @Override
     public void visit(AnalyticExpression aexpr) {
-        buffer.append(aexpr.toString());
+        String name = aexpr.getName();
+        Expression expression = aexpr.getExpression();
+        Expression offset = aexpr.getOffset();
+        Expression defaultValue = aexpr.getDefaultValue();
+        boolean isAllColumns = aexpr.isAllColumns();
+        KeepExpression keep = aexpr.getKeep();
+        ExpressionList partitionExpressionList = aexpr.getPartitionExpressionList();
+        List<OrderByElement> orderByElements = aexpr.getOrderByElements();
+        WindowElement windowElement = aexpr.getWindowElement();
+
+        buffer.append(name).append("(");
+        if (aexpr.isDistinct()) {
+            buffer.append("DISTINCT ");
+        }
+        if (expression != null) {
+            expression.accept(this);
+            if (offset != null) {
+                buffer.append(", ");
+                offset.accept(this);
+                if (defaultValue != null) {
+                    buffer.append(", ");
+                    defaultValue.accept(this);
+                }
+            }
+        } else if (isAllColumns) {
+            buffer.append("*");
+        }
+        if (aexpr.isIgnoreNulls()) {
+            buffer.append(" IGNORE NULLS");
+        }
+        buffer.append(") ");
+        if (keep != null) {
+            keep.accept(this);
+            buffer.append(" ");
+        }
+
+        if (aexpr.getFilterExpression() != null) {
+            buffer.append("FILTER (WHERE ");
+            aexpr.getFilterExpression().accept(this);
+            buffer.append(") ");
+        }
+
+        switch (aexpr.getType()) {
+        case WITHIN_GROUP:
+            buffer.append("WITHIN GROUP");
+            break;
+        default:
+            buffer.append("OVER");
+        }
+        buffer.append(" (");
+
+        if (partitionExpressionList != null && !partitionExpressionList.getExpressions().isEmpty()) {
+            buffer.append("PARTITION BY ");
+            if (aexpr.isPartitionByBrackets()) {
+                buffer.append("(");
+            }
+            List<Expression> expressions = partitionExpressionList.getExpressions();
+            for (int i = 0; i < expressions.size(); i++) {
+                if (i > 0) {
+                    buffer.append(", ");
+                }
+                expressions.get(i).accept(this);
+            }
+            if (aexpr.isPartitionByBrackets()) {
+                buffer.append(")");
+            }
+            buffer.append(" ");
+        }
+        if (orderByElements != null && !orderByElements.isEmpty()) {
+            buffer.append("ORDER BY ");
+            orderByDeParser.setExpressionVisitor(this);
+            orderByDeParser.setBuffer(buffer);
+            for (int i = 0; i < orderByElements.size(); i++) {
+                if (i > 0) {
+                    buffer.append(", ");
+                }
+                orderByDeParser.deParseElement(orderByElements.get(i));
+            }
+        }
+
+        if (windowElement != null) {
+            if (orderByElements != null && !orderByElements.isEmpty()) {
+                buffer.append(' ');
+            }
+            buffer.append(windowElement);
+        }
+
+        buffer.append(")");
     }
 
     @Override
@@ -556,11 +810,6 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
     }
 
     @Override
-    public void visit(WithinGroupExpression wgexpr) {
-        buffer.append(wgexpr.toString());
-    }
-
-    @Override
     public void visit(UserVariable var) {
         buffer.append(var.toString());
     }
@@ -578,6 +827,11 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
     @Override
     public void visit(MySQLGroupConcat groupConcat) {
         buffer.append(groupConcat.toString());
+    }
+
+    @Override
+    public void visit(ValueListExpression valueList) {
+        buffer.append(valueList.toString());
     }
 
     @Override
@@ -613,4 +867,38 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
         buffer.append(literal.toString());
     }
 
+    @Override
+    public void visit(NextValExpression nextVal) {
+        buffer.append("NEXTVAL FOR ").append(nextVal.getName());
+    }
+
+    @Override
+    public void visit(CollateExpression col) {
+        buffer.append(col.getLeftExpression().toString()).append(" COLLATE ").append(col.getCollate());
+    }
+
+    @Override
+    public void visit(SimilarToExpression expr) {
+        visitBinaryExpression(expr, (expr.isNot() ? " NOT" : "") + " SIMILAR TO ");
+    }
+
+    @Override
+    public void visit(ArrayExpression array) {
+        array.getObjExpression().accept(this);
+        buffer.append("[");
+        array.getIndexExpression().accept(this);
+        buffer.append("]");
+    }
+
+    @Override
+    void deParse(Expression statement) {
+        statement.accept(this);
+    }
+    
+    @Override
+    public void visit(VariableAssignment var) {
+        var.getVariable().accept(this);
+        buffer.append(" ").append(var.getOperation()).append(" ");
+        var.getExpression().accept(this);
+    }
 }

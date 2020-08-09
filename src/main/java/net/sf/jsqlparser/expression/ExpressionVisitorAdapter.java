@@ -1,22 +1,10 @@
-/*
+/*-
  * #%L
  * JSQLParser library
  * %%
- * Copyright (C) 2004 - 2015 JSQLParser
+ * Copyright (C) 2004 - 2019 JSQLParser
  * %%
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation, either version 2.1 of the
- * License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Lesser Public License for more details.
- * 
- * You should have received a copy of the GNU General Lesser Public
- * License along with this program.  If not, see
- * <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * Dual licensed under GNU LGPL 2.1 or Apache License 2.0
  * #L%
  */
 package net.sf.jsqlparser.expression;
@@ -24,7 +12,6 @@ package net.sf.jsqlparser.expression;
 import net.sf.jsqlparser.expression.operators.arithmetic.*;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
 import net.sf.jsqlparser.expression.operators.conditional.OrExpression;
-import net.sf.jsqlparser.expression.operators.relational.JsonOperator;
 import net.sf.jsqlparser.expression.operators.relational.*;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.statement.select.AllColumns;
@@ -39,6 +26,7 @@ import net.sf.jsqlparser.statement.select.SelectExpressionItem;
 import net.sf.jsqlparser.statement.select.SelectItemVisitor;
 import net.sf.jsqlparser.statement.select.SelectVisitor;
 import net.sf.jsqlparser.statement.select.SubSelect;
+import net.sf.jsqlparser.statement.select.UnPivot;
 import net.sf.jsqlparser.statement.select.WithItem;
 
 public class ExpressionVisitorAdapter implements ExpressionVisitor, ItemsListVisitor, PivotVisitor, SelectItemVisitor {
@@ -129,6 +117,11 @@ public class ExpressionVisitorAdapter implements ExpressionVisitor, ItemsListVis
     }
 
     @Override
+    public void visit(IntegerDivision expr) {
+        visitBinaryExpression(expr);
+    }
+
+    @Override
     public void visit(Multiplication expr) {
         visitBinaryExpression(expr);
     }
@@ -177,11 +170,29 @@ public class ExpressionVisitorAdapter implements ExpressionVisitor, ItemsListVis
         } else if (expr.getLeftItemsList() != null) {
             expr.getLeftItemsList().accept(this);
         }
-        expr.getRightItemsList().accept(this);
+        if (expr.getRightExpression() != null) {
+            expr.getRightExpression().accept(this);
+        } else if (expr.getRightItemsList() != null) {
+            expr.getRightItemsList().accept(this);
+        } else {
+            expr.getMultiExpressionList().accept(this);
+        }
     }
 
     @Override
     public void visit(IsNullExpression expr) {
+        expr.getLeftExpression().accept(this);
+    }
+
+    @Override
+    public void visit(FullTextSearch expr) {
+        for (Column col : expr.getMatchColumns()) {
+            col.accept(this);
+        }
+    }
+
+    @Override
+    public void visit(IsBooleanExpression expr) {
         expr.getLeftExpression().accept(this);
     }
 
@@ -227,11 +238,15 @@ public class ExpressionVisitorAdapter implements ExpressionVisitor, ItemsListVis
 
     @Override
     public void visit(CaseExpression expr) {
-        expr.getSwitchExpression().accept(this);
+        if (expr.getSwitchExpression() != null) {
+            expr.getSwitchExpression().accept(this);
+        }
         for (Expression x : expr.getWhenClauses()) {
             x.accept(this);
         }
-        expr.getElseExpression().accept(this);
+        if (expr.getElseExpression() != null) {
+            expr.getElseExpression().accept(this);
+        }
     }
 
     @Override
@@ -292,9 +307,15 @@ public class ExpressionVisitorAdapter implements ExpressionVisitor, ItemsListVis
 
     @Override
     public void visit(AnalyticExpression expr) {
-        expr.getExpression().accept(this);
-        expr.getDefaultValue().accept(this);
-        expr.getOffset().accept(this);
+        if (expr.getExpression() != null) {
+            expr.getExpression().accept(this);
+        }
+        if (expr.getDefaultValue() != null) {
+            expr.getDefaultValue().accept(this);
+        }
+        if (expr.getOffset() != null) {
+            expr.getOffset().accept(this);
+        }
         if (expr.getKeep() != null) {
             expr.getKeep().accept(this);
         }
@@ -302,9 +323,11 @@ public class ExpressionVisitorAdapter implements ExpressionVisitor, ItemsListVis
             element.getExpression().accept(this);
         }
 
-        expr.getWindowElement().getRange().getStart().getExpression().accept(this);
-        expr.getWindowElement().getRange().getEnd().getExpression().accept(this);
-        expr.getWindowElement().getOffset().getExpression().accept(this);
+        if (expr.getWindowElement() != null) {
+            expr.getWindowElement().getRange().getStart().getExpression().accept(this);
+            expr.getWindowElement().getRange().getEnd().getExpression().accept(this);
+            expr.getWindowElement().getOffset().getExpression().accept(this);
+        }
     }
 
     @Override
@@ -335,6 +358,13 @@ public class ExpressionVisitorAdapter implements ExpressionVisitor, ItemsListVis
     }
 
     @Override
+    public void visit(NamedExpressionList namedExpressionList) {
+        for (Expression expr : namedExpressionList.getExpressions()) {
+            expr.accept(this);
+        }
+    }
+
+    @Override
     public void visit(MultiExpressionList multiExprList) {
         for (ExpressionList list : multiExprList.getExprList()) {
             visit(list);
@@ -344,6 +374,16 @@ public class ExpressionVisitorAdapter implements ExpressionVisitor, ItemsListVis
     @Override
     public void visit(NotExpression notExpr) {
         notExpr.getExpression().accept(this);
+    }
+
+    @Override
+    public void visit(BitwiseRightShift expr) {
+        visitBinaryExpression(expr);
+    }
+
+    @Override
+    public void visit(BitwiseLeftShift expr) {
+        visitBinaryExpression(expr);
     }
 
     protected void visitBinaryExpression(BinaryExpression expr) {
@@ -364,14 +404,6 @@ public class ExpressionVisitorAdapter implements ExpressionVisitor, ItemsListVis
     @Override
     public void visit(RegExpMySQLOperator expr) {
         visitBinaryExpression(expr);
-    }
-
-    @Override
-    public void visit(WithinGroupExpression wgexpr) {
-        wgexpr.getExprList().accept(this);
-        for (OrderByElement element : wgexpr.getOrderByElements()) {
-            element.getExpression().accept(this);
-        }
     }
 
     @Override
@@ -400,6 +432,13 @@ public class ExpressionVisitorAdapter implements ExpressionVisitor, ItemsListVis
             for (OrderByElement element : groupConcat.getOrderByElements()) {
                 element.getExpression().accept(this);
             }
+        }
+    }
+
+    @Override
+    public void visit(ValueListExpression valueListExpression) {
+        for (Expression expr : valueListExpression.getExpressionList().getExpressions()) {
+            expr.accept(this);
         }
     }
 
@@ -435,6 +474,11 @@ public class ExpressionVisitorAdapter implements ExpressionVisitor, ItemsListVis
         if (pivot.getInSelect() != null && selectVisitor != null) {
             pivot.getInSelect().accept(selectVisitor);
         }
+    }
+
+    @Override
+    public void visit(UnPivot unpivot) {
+        unpivot.accept(this);
     }
 
     @Override
@@ -476,7 +520,31 @@ public class ExpressionVisitorAdapter implements ExpressionVisitor, ItemsListVis
 
     @Override
     public void visit(DateTimeLiteralExpression literal) {
-
     }
 
+    @Override
+    public void visit(NextValExpression nextVal) {
+    }
+
+    @Override
+    public void visit(CollateExpression col) {
+        col.getLeftExpression().accept(this);
+    }
+
+    @Override
+    public void visit(SimilarToExpression expr) {
+        visitBinaryExpression(expr);
+    }
+
+    @Override
+    public void visit(ArrayExpression array) {
+        array.getObjExpression().accept(this);
+        array.getIndexExpression().accept(this);
+    }
+
+    @Override
+    public void visit(VariableAssignment var) {
+        var.getVariable().accept(this);
+        var.getExpression().accept(this);
+    }
 }
